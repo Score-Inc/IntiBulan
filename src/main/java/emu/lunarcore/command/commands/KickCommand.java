@@ -8,7 +8,7 @@ import emu.lunarcore.game.player.Player;
 @Command(
     label = "kick",
     desc = "/kick @[player id]. Kicks a player from the server.",
-    permission = "player.kick"
+    permission = "admin.kick"
 )
 public final class KickCommand implements CommandHandler {
 

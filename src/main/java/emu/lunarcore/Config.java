@@ -18,7 +18,7 @@ public class Config {
 
     public HttpServerConfig httpServer = new HttpServerConfig(443);
     public GameServerConfig gameServer = new GameServerConfig(23301);
-    
+
     public ServerOptions serverOptions = new ServerOptions();
     public LogOptions logOptions = new LogOptions();
     public DownloadData downloadData = new DownloadData();
@@ -56,7 +56,7 @@ public class Config {
             this.port = port;
         }
     }
-    
+
     @Getter
     public static class HttpServerConfig extends ServerConfig {
         public boolean useSSL = true;
@@ -65,7 +65,7 @@ public class Config {
         public HttpServerConfig(int port) {
             super(port);
         }
-        
+
         public String getDisplayAddress() {
             return (useSSL ? "https" : "http") + "://" + publicAddress + ":" + port;
         }
@@ -73,16 +73,16 @@ public class Config {
 
     @Getter
     public static class GameServerConfig extends ServerConfig {
-        public String id = "lunar_rail_test";
-        public String name = "Test";
-        public String description = "Test Server";
+        public String id = "score_ps_test";
+        public String name = "ScorePS";
+        public String description = "ScorePS Server";
         public int kcpInterval = 40;
 
         public GameServerConfig(int port) {
             super(port);
         }
     }
-    
+
     @Getter
     public static class ServerOptions {
         public boolean autoCreateAccount = true;
@@ -92,29 +92,29 @@ public class Config {
         public int staminaRecoveryRate = 5 * 60;
         public int staminaReserveRecoveryRate = 18 * 60;
         public String language = "EN";
-        public Set<String> defaultPermissions = Set.of("*");
+        public Set<String> defaultPermissions = Set.of("player.verify");
         public WelcomeMail welcomeMail = new WelcomeMail();
-        
+
         public int getStaminaRecoveryRate() {
             return staminaRecoveryRate > 0 ? staminaRecoveryRate : 1;
         }
-        
+
         public int getStaminaReserveRecoveryRate() {
             return staminaReserveRecoveryRate > 0 ? staminaReserveRecoveryRate : 1;
         }
     }
-    
+
     @Getter
     public static class WelcomeMail {
         public String title;
         public String sender;
         public String content;
         public List<ItemParam> attachments;
-        
+
         public WelcomeMail() {
-            this.title = "Welcome to a LunarCore server";
-            this.sender = "Server";
-            this.content = "Welcome to Lunar Core! Please take these items as a starter gift. For a list of commands, type /help in the server chat window. Check out our <a type=OpenURL1 href=https://discord.gg/cfPKJ6N5hw>Discord</a> and <a type=OpenURL1 href=https://github.com/Melledy/LunarCore>Github</a> for more information about the server.";
+            this.title = "Welcome to ScorePS";
+            this.sender = "TheScore";
+            this.content = "Welcome to Lunar Core! Please take these items as a starter gift. For a list of commands, type /help in the server chat window. Check out our <a type=OpenURL1 href=https://discord.gg/2TTSUZZ>Discord</a> and <a type=OpenURL1 href=https://github.com/Score-Inc/IntiBulan.git>Github</a> for more information about the server.";
             this.attachments = List.of(
                 new ItemParam(2, 1000000),
                 new ItemParam(101, 100),
@@ -124,14 +124,14 @@ public class Config {
             );
         }
     }
-    
+
     @Getter
     public static class LogOptions {
         public boolean commands = true;
         public boolean connections = true;
         public boolean packets = false;
     }
-    
+
     @Getter
     public static class DownloadData {
         public String assetBundleUrl = null;
