@@ -12,7 +12,7 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 public final class ListCommand implements CommandHandler {
 
     @Override
-    public void execute(Player sender, CommandArgs args) {
+    public void execute(CommandArgs args) {
         // Get player list
         Int2ObjectMap<Player> playersMap = LunarCore.getGameServer().getOnlinePlayers();
 
@@ -27,8 +27,7 @@ public final class ListCommand implements CommandHandler {
                                 playerSet.append(", ");
                             });
             String players = playerSet.toString();
-            this.sendMessage(sender,
-                    "Players online (" + playersMap.size() + ") :\n " + players.substring(0, players.length() - 2));
+            args.sendMessage("Players online (" + playersMap.size() + ") :\n " + players.substring(0, players.length() - 2));
         }
     }
 }

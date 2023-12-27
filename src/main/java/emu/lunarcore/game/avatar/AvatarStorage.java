@@ -53,15 +53,17 @@ public class AvatarStorage extends BasePlayerManager implements Iterable<GameAva
         // Set owner first
         avatar.setOwner(getPlayer());
 
-        // Put into maps
+        // Put into avatar map
         this.avatars.put(avatar.getAvatarId(), avatar);
 
-        // Save to database
+        // Save to database and send packet
         avatar.save();
-
-        // Send packet
         getPlayer().sendPacket(new PacketPlayerSyncScNotify(avatar));
+        
+        // Add head icon
+        getPlayer().getUnlocks().addHeadIcon(avatar.getHeadIconId());
 
+        // Done
         return true;
     }
     

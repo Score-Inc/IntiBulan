@@ -8,19 +8,12 @@ import emu.lunarcore.command.CommandArgs;
 import emu.lunarcore.command.CommandHandler;
 import emu.lunarcore.game.inventory.GameItem;
 import emu.lunarcore.game.mail.Mail;
-import emu.lunarcore.game.player.Player;
 
-@Command(label = "mail", aliases = {"m"}, permission = "admin.mail", desc = "/mail [content]. Sends the targeted player a system mail.")
+@Command(label = "mail", aliases = {"m"}, permission = "admin.mail", requireTarget = true, desc = "/mail [content]. Sends the targeted player a system mail.")
 public class MailCommand implements CommandHandler {
 
     @Override
-    public void execute(Player sender, CommandArgs args) {
-        // Check target
-        if (args.getTarget() == null) {
-            this.sendMessage(sender, "Error: Targeted player not found or offline");
-            return;
-        }
-
+    public void execute(CommandArgs args) {
         // Get attachments
         List<GameItem> attachments = new ArrayList<>();
 
@@ -55,7 +48,6 @@ public class MailCommand implements CommandHandler {
         // Send to target
         args.getTarget().getMailbox().sendMail(mail);
 
-        this.sendMessage(sender, "Sending mail to " + args.getTarget().getName());
+        args.sendMessage("Sending mail to " + args.getTarget().getName());
     }
-
 }

@@ -12,15 +12,16 @@ public class PropExcel extends GameResource {
     private long PropName;
     private String JsonPath;
     private PropType PropType;
-    
+
     private transient boolean recoverHp;
     private transient boolean recoverMp;
+    private transient boolean isDoor;
     
     @Override
     public int getId() {
         return ID;
     }
-    
+
     @Override
     public void onLoad() {
         // Hacky way to determine if a prop will recover hp or mp
@@ -29,9 +30,11 @@ public class PropExcel extends GameResource {
                 this.recoverMp = true;
             } else if (getJsonPath().contains("HPRecoverBox")) {
                 this.recoverHp = true;
+            } else if (getJsonPath().contains("_Door_")) {
+                this.isDoor = true;
             }
         }
-        
+
         // Clear for optimization
         this.JsonPath = null;
     }

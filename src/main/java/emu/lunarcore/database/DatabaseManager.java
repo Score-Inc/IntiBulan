@@ -20,6 +20,7 @@ import de.bwaldvogel.mongo.backend.memory.MemoryBackend;
 
 import dev.morphia.Datastore;
 import dev.morphia.DeleteOptions;
+import dev.morphia.InsertOneOptions;
 import dev.morphia.Morphia;
 import dev.morphia.annotations.Entity;
 import dev.morphia.mapping.Mapper;
@@ -38,7 +39,9 @@ public final class DatabaseManager {
     @Getter private static MongoServer server;
     private Datastore datastore;
 
-    private final DeleteOptions DELETE_MANY = new DeleteOptions().multi(true);
+    private static final InsertOneOptions INSERT_OPTIONS = new InsertOneOptions();
+    private static final DeleteOptions DELETE_OPTIONS = new DeleteOptions();
+    private static final DeleteOptions DELETE_MANY = new DeleteOptions().multi(true);
 
     public DatabaseManager(DatabaseInfo info, ServerType type) {
         // Variables
@@ -48,18 +51,18 @@ public final class DatabaseManager {
         // Local mongo server
         if (info.isUseInternal() && Utils.isPortOpen(internalConfig.getAddress(), internalConfig.getPort())) {
             connectionString = startInternalMongoServer(internalConfig);
-            LunarCore.getLogger().info("Using local mongo server at " + server.getConnectionString());
+            LunarCore.getLogger().info("Started local MongoDB server at " + server.getConnectionString());
         }
 
         // Initialize
-        MongoClient gameMongoClient = MongoClients.create(connectionString);
-
+        MongoClient mongoClient = MongoClients.create(connectionString);
+        
         // Add our custom fastutil codecs
         var codecProvider = CodecRegistries.fromCodecs(
-               new IntSetCodec(), new Int2IntMapCodec()
+               new IntSetCodec(), new IntListCodec(), new Int2IntMapCodec()
         );
 
-        // Set mapper options.
+        // Set mapper options
         MapperOptions mapperOptions = MapperOptions.builder()
                 .storeEmpties(true)
                 .storeNulls(false)
@@ -67,7 +70,7 @@ public final class DatabaseManager {
                 .build();
 
         // Create data store.
-        datastore = Morphia.createDatastore(gameMongoClient, info.getCollection(), mapperOptions);
+        datastore = Morphia.createDatastore(mongoClient, info.getCollection(), mapperOptions);
 
         // Map classes
         var entities = new Reflections(LunarCore.class.getPackageName())
@@ -149,11 +152,11 @@ public final class DatabaseManager {
     }
 
     public <T> void save(T obj) {
-        getDatastore().save(obj);
+        getDatastore().save(obj, INSERT_OPTIONS);
     }
 
     public <T> boolean delete(T obj) {
-        DeleteResult result = getDatastore().delete(obj);
+        DeleteResult result = getDatastore().delete(obj, DELETE_OPTIONS);
         return result.getDeletedCount() > 0;
     }
 

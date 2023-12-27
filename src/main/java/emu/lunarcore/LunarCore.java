@@ -1,19 +1,22 @@
 package emu.lunarcore;
 
 import java.io.*;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
+import emu.lunarcore.plugin.PluginManager;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.LineReaderBuilder;
 import org.jline.reader.UserInterruptException;
 import org.jline.reader.impl.LineReaderImpl;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import ch.qos.logback.classic.Logger;
 import emu.lunarcore.command.CommandManager;
 import emu.lunarcore.data.ResourceLoader;
 import emu.lunarcore.database.DatabaseManager;
@@ -24,7 +27,7 @@ import emu.lunarcore.util.JsonUtils;
 import lombok.Getter;
 
 public class LunarCore {
-    private static final Logger log = (Logger) LoggerFactory.getLogger(LunarCore.class);
+    private static final Logger log = LoggerFactory.getLogger(LunarCore.class);
     private static File configFile = new File("./config.json");
     @Getter private static Config config;
 
@@ -35,6 +38,7 @@ public class LunarCore {
     @Getter private static GameServer gameServer;
 
     @Getter private static CommandManager commandManager;
+    @Getter private static PluginManager pluginManager;
     @Getter private static ServerType serverType = ServerType.BOTH;
 
     private static LineReaderImpl reader;
@@ -58,13 +62,22 @@ public class LunarCore {
 
     public static void main(String[] args) {
         // Start Server
-        LunarCore.getLogger().info("Starting Lunar Core...");
+        LunarCore.getLogger().info("Starting Lunar Core " + getJarVersion());
         LunarCore.getLogger().info("Git hash: " + getGitHash());
         LunarCore.getLogger().info("Game version: " + GameConstants.VERSION);
         boolean generateHandbook = true;
 
         // Load commands
         LunarCore.commandManager = new CommandManager();
+        
+        // Load plugin manager
+        LunarCore.pluginManager = new PluginManager();
+
+        try {
+            LunarCore.getPluginManager().loadPlugins();
+        } catch (Exception exception) {
+            LunarCore.getLogger().error("Unable to load plugins.", exception);
+        }
 
         // Parse arguments
         for (String arg : args) {
@@ -122,9 +135,12 @@ public class LunarCore {
         } catch (Exception exception) {
             LunarCore.getLogger().error("Unable to start the game server.", exception);
         }
-
+        
         // Hook into shutdown event
         Runtime.getRuntime().addShutdownHook(new Thread(LunarCore::onShutdown));
+
+        // Enable plugins
+        LunarCore.getPluginManager().enablePlugins();
 
         // Start console
         LunarCore.startConsole();
@@ -161,12 +177,20 @@ public class LunarCore {
     // Config
 
     public static void loadConfig() {
+        // Load from file
         try (FileReader file = new FileReader(configFile)) {
-            config = JsonUtils.loadToClass(file, Config.class);
+            LunarCore.config = JsonUtils.loadToClass(file, Config.class);
         } catch (Exception e) {
+            // Ignored
+        }
+        
+        // Sanity check
+        if (LunarCore.getConfig() == null) {
             LunarCore.config = new Config();
         }
-        saveConfig();
+        
+        // Save config
+        LunarCore.saveConfig();
     }
 
     public static void saveConfig() {
@@ -178,17 +202,44 @@ public class LunarCore {
         }
     }
 
-    // Git hash
-
-    private static String getGitHash() {
-        // Safely get the build config without errors even if it hasnt been generated yet
+    // Build Config
+    
+    private static String getJarVersion() {
+        // Safely get the build config class without errors even if it hasnt been generated yet
         try {
-            Class<?> buildConfig = Class.forName("emu.lunarcore.BuildConfig");
-            return buildConfig.getField("GIT_HASH").get(null).toString();
+            Class<?> buildConfig = Class.forName(LunarCore.class.getPackageName() + ".BuildConfig");
+            return buildConfig.getField("VERSION").get(null).toString();
         } catch (Exception e) {
             // Ignored
         }
-        return "Unknown";
+        
+        return "";
+    }
+
+    private static String getGitHash() {
+        // Use a string builder in case one of the build config fields are missing
+        StringBuilder builder = new StringBuilder();
+        
+        // Safely get the build config class without errors even if it hasnt been generated yet
+        try {
+            SimpleDateFormat sf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            Class<?> buildConfig = Class.forName(LunarCore.class.getPackageName() + ".BuildConfig");
+            
+            String hash = buildConfig.getField("GIT_HASH").get(null).toString();
+            builder.append(hash);
+            
+            String timestamp = buildConfig.getField("GIT_TIMESTAMP").get(null).toString();
+            long time = Long.parseLong(timestamp) * 1000;
+            builder.append(" (" + sf.format(new Date(time)) + ")");
+        } catch (Exception e) {
+            // Ignored
+        }
+        
+        if (builder.isEmpty()) {
+            return "";
+        } else {
+            return builder.toString();
+        }
     }
 
     // Server console
@@ -217,6 +268,10 @@ public class LunarCore {
         if (gameServer != null) {
             gameServer.onShutdown();
         }
+
+        if (pluginManager != null) {
+            pluginManager.disablePlugins();
+        }
     }
 
     // Server enums
@@ -240,4 +295,6 @@ public class LunarCore {
             return (this.flags & 0x2) == 0x2;
         }
     }
+
+    // Hiro was here
 }

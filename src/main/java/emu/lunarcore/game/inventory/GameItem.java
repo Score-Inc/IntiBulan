@@ -49,7 +49,7 @@ public class GameItem {
     @Setter private boolean locked;
 
     @Setter private int mainAffix;
-    private List<ItemSubAffix> subAffixes;
+    private List<GameItemSubAffix> subAffixes;
 
     private int equipAvatar;
 
@@ -135,8 +135,13 @@ public class GameItem {
         return !this.isLocked() && !this.isEquipped();
     }
 
-    public void setCount(int count) {
-        this.count = count;
+    public boolean setCount(int count) {
+        if (this.count != count) {
+            this.count = count;
+            return true;
+        }
+        
+        return false;
     }
 
     public boolean setEquipAvatar(int newEquipAvatar) {
@@ -148,6 +153,14 @@ public class GameItem {
     }
 
     // Sub affixes
+    
+    public void resetSubAffixes() {
+        if (this.subAffixes != null) {
+            this.subAffixes.clear();
+        } else {
+            this.subAffixes = new ArrayList<>();
+        }
+    }
 
     public void addSubAffixes(int quantity) {
         for (int i = 0; i < quantity; i++) {
@@ -180,7 +193,7 @@ public class GameItem {
         }
 
         IntSet blacklist = new IntOpenHashSet();
-        for (ItemSubAffix subAffix : this.getSubAffixes()) {
+        for (GameItemSubAffix subAffix : this.getSubAffixes()) {
             blacklist.add(subAffix.getId());
         }
 
@@ -199,12 +212,31 @@ public class GameItem {
 
         // Add random stat
         RelicSubAffixExcel subAffix = randomList.next();
-        this.subAffixes.add(new ItemSubAffix(subAffix));
+        this.subAffixes.add(new GameItemSubAffix(subAffix));
     }
 
     private void upgradeRandomSubAffix() {
-        ItemSubAffix subAffix = Utils.randomElement(this.subAffixes);
-        subAffix.incrementCount();
+        GameItemSubAffix subAffix = Utils.randomElement(this.subAffixes);
+        var subAffixExcel = GameData.getRelicSubAffixExcel(this.getExcel().getRelicExcel().getSubAffixGroup(), subAffix.getId());
+        subAffix.incrementCount(subAffixExcel.getStepNum());
+    }
+    
+    /**
+     * Returns the current count of sub affixes this item has
+     */
+    public int getCurrentSubAffixCount() {
+        if (this.subAffixes == null) return 0;
+        
+        return this.subAffixes
+                .stream()
+                .reduce(0, (subtotal, subAffix) -> subtotal + subAffix.getCount(), Integer::sum);
+    }
+    
+    /**
+     * Returns the maximum amount of sub affixes this item should normally have
+     */
+    public int getMaxNormalSubAffixCount() {
+        return (getExcel().getRarity().getVal() - 1) + (int) Math.floor(this.getLevel() / 3.0);
     }
 
     // Database
@@ -215,7 +247,6 @@ public class GameItem {
         } else if (this.getId() != null) {
             LunarCore.getGameDatabase().delete(this);
         }
-
     }
 
     // Proto

@@ -93,6 +93,7 @@ public class CommandManager {
     }
 
     public void invoke(Player sender, String message) {
+        // Parse message into arguments
         List<String> args = Arrays.stream(message.split(" ")).collect(Collectors.toCollection(ArrayList::new));
 
         // Get command label
@@ -105,32 +106,45 @@ public class CommandManager {
         // Get handler
         CommandHandler handler = this.commands.get(label);
 
-        // Execute
+        // Execute command
         if (handler != null) {
-            // Command annotation data
-            Command command = handler.getClass().getAnnotation(Command.class);
-            // Check permission
-            if (this.checkPermission(sender, command)) {
-                // Check targeted permission
-                CommandArgs cmdArgs = new CommandArgs(sender, args);
-                if (sender != cmdArgs.getTarget() && !this.checkTargetPermission(sender, command)) {
-                    handler.sendMessage(sender, "You do not have permission to use this command on another player.");
-                    return;
-                }
-                // Log
-                if (sender != null && LunarCore.getConfig().getLogOptions().commands) {
-                    LunarCore.getLogger().info("[UID: " + sender.getUid() + "] " + sender.getName() + " used command: " + message);
-                }
-                // Run command
-                handler.execute(sender, cmdArgs);
-            } else {
-                handler.sendMessage(sender, "You do not have permission to use this command. Perhaps you have missing permission or haven't verified yet.");
+            // Get command annotation data
+            Command command = handler.getData();
+
+            // Check if sender has permission to run the command.
+            if (sender != null && !this.checkPermission(sender, command)) {
+                // We have a double null check here just in case
+                sender.sendMessage("You do not have permission to use this command.");
+                return;
             }
+
+            // Build command arguments
+            CommandArgs cmdArgs = new CommandArgs(sender, args);
+
+            // Check targeted permission
+            if (sender != cmdArgs.getTarget() && !this.checkTargetPermission(sender, command)) {
+                cmdArgs.sendMessage("You do not have permission to use this command on another player.");
+                return;
+            }
+
+            // Make sure our command has a target
+            if (command.requireTarget() && cmdArgs.getTarget() == null) {
+                cmdArgs.sendMessage("Error: Targeted player not found or offline");
+                return;
+            }
+
+            // Log
+            if (sender != null && LunarCore.getConfig().getLogOptions().commands) {
+                LunarCore.getLogger().info("[UID: " + sender.getUid() + "] " + sender.getName() + " used command: " + message);
+            }
+
+            // Run command
+            handler.execute(cmdArgs);
         } else {
             if (sender != null) {
-                sender.sendMessage("Inavlid Command!");
+                sender.sendMessage("Invalid Command!");
             } else {
-                LunarCore.getLogger().info("Inavlid Command!");
+                LunarCore.getLogger().info("Invalid Command!");
             }
         }
     }
